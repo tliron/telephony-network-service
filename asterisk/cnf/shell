@@ -1,0 +1,10 @@
+#!/bin/bash
+set -e
+
+HERE=$(dirname "$(readlink --canonicalize "$BASH_SOURCE")")
+. "$HERE/../../scripts/_env"
+
+minikube profile edge
+
+POD=$(kubectl_first_pod asterisk-cnf)
+kubectl exec -it "$POD" --namespace="$WORKSPACE" -- bash

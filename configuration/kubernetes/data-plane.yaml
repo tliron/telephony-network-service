@@ -1,0 +1,58 @@
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+
+metadata:
+  name: data-plane
+  namespace: !!string $NAMESPACE
+
+spec:
+  # https://github.com/containernetworking/plugins/tree/master/plugins/main/bridge
+  config: |-
+    {
+      "cniVersion": "0.3.1",
+      "name": "data-plane",
+      "type": "bridge",
+      "bridge": "data-plane",
+      "isDefaultGateway": true,
+      "ipMasq": true,
+      "promiscMode": true,
+      "ipam": {
+         "type": "host-local",
+         "subnet": "$IP_PREFIX.0/24",
+         "rangeStart": "$IP_PREFIX.2",
+         "rangeEnd": "$IP_PREFIX.254",
+         "routes": [
+           { "dst": "0.0.0.0/0" }
+         ],
+         "gateway": "$IP_PREFIX.1"
+      }
+    }
+
+#   # https://github.com/containernetworking/plugins/tree/master/plugins/meta/flannel
+#   config: |-
+#     {
+#       "cniVersion": "0.3.1",
+#       "name": "flannel",
+#       "delegate": {
+#         "isDefaultGateway": true
+#       }
+#     }
+
+#   # https://github.com/containernetworking/plugins/tree/master/plugins/main/macvlan
+#   config: |-
+#     {
+#       "cniVersion": "0.3.1",
+#       "name": "data-plane",
+#       "type": "macvlan",
+#       "master": "eth1",
+#       "ipam": {
+#         "type": "host-local",
+#         "subnet": "$IP_PREFIX.0/24",
+#         "rangeStart": "$IP_PREFIX.2",
+#         "rangeEnd": "$IP_PREFIX.254",
+#         "routes": [
+#           { "dst": "0.0.0.0/0" }
+#         ],
+#         "gateway": "$IP_PREFIX.1"
+#       }
+#     }

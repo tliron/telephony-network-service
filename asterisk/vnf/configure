@@ -1,0 +1,70 @@
+#!/bin/bash
+set -e
+
+HERE=$(dirname "$(readlink --canonicalize "$BASH_SOURCE")")
+. "$HERE/../../scripts/_env"
+. "$ROOT/scripts/_trap"
+
+minikube profile edge
+
+TRUNK_IP=$(kubectl_data_plane_ip asterisk-cnf)
+
+minikube profile central
+
+while ! "$ROOT/ssh/ssh" -t asterisk-vnf 'cd / &&' sudo -u asterisk asterisk -rx ulimit; do
+	m 'waiting for Asterisk to start...'
+	sleep 1
+done
+
+EXTERNAL_IP=$(kubectl_external_ip asterisk-vnf-udp)
+while [ -z "$EXTERNAL_IP" ]; do
+	m 'waiting for external IP...'
+	sleep 1
+	EXTERNAL_IP=$(kubectl_external_ip asterisk-vnf-udp)
+done
+
+CONTROL_PLANE_IP=$(kubectl_control_plane_ip asterisk-vnf)
+DATA_PLANE_IP=$(kubectl_data_plane_ip asterisk-vnf)
+
+m EXTERNAL_IP=$EXTERNAL_IP
+m CONTROL_PLANE_IP=$CONTROL_PLANE_IP
+m DATA_PLANE_IP=$DATA_PLANE_IP
+m TRUNK_IP=$TRUNK_IP
+
+m 'configuring Asterisk...'
+
+"$ROOT/ssh/rsync" \
+	"$ROOT/configuration/asterisk/extensions-vnf.conf.template" \
+	"$ROOT/configuration/asterisk/pjsip-vnf.conf.template" \
+	"$ROOT/configuration/asterisk/rtp.conf" \
+	asterisk-vnf:
+
+"$ROOT/ssh/ssh" asterisk-vnf "$(cat <<- EOT
+
+	cat extensions-vnf.conf.template | __=\\$ TRUNK_IP=$TRUNK_IP envsubst > extensions.conf
+	cat pjsip-vnf.conf.template | CONTROL_PLANE_IP=$CONTROL_PLANE_IP DATA_PLANE_IP=$DATA_PLANE_IP EXTERNAL_IP=$EXTERNAL_IP TRUNK_IP=$TRUNK_IP envsubst > pjsip-vnf.conf
+
+	sudo mv pjsip-vnf.conf /etc/asterisk/pjsip.conf
+	sudo mv rtp.conf /etc/asterisk/rtp.conf
+	sudo mv extensions.conf /etc/asterisk/extensions.conf
+
+	sudo chown asterisk:asterisk \
+		/etc/asterisk/pjsip.conf \
+		/etc/asterisk/rtp.conf \
+		/etc/asterisk/extensions.conf
+
+	sudo chcon system_u:object_r:asterisk_etc_t:s0 \
+		/etc/asterisk/pjsip.conf \
+		/etc/asterisk/rtp.conf \
+		/etc/asterisk/extensions.conf
+
+	sudo systemctl restart asterisk.service
+
+EOT
+)"
+
+IP=$EXTERNAL_IP \
+"$ROOT/linphone/update-200"
+
+IP=$EXTERNAL_IP \
+"$ROOT/linphone/update-201"

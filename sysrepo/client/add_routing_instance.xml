@@ -1,0 +1,27 @@
+<rpc message-id="m-2"
+	xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+	<edit-config>
+		<target>
+			<running />
+		</target>
+		<default-operation>merge</default-operation>
+		<error-option>rollback-on-error</error-option>
+		<config>
+			<routing xmlns="urn:ietf:params:xml:ns:yang:ietf-routing">
+				<routing-instance>
+					<name>default-rt</name>
+					<ribs
+						xmlns:ietf-ipv4-unicast-routing="urn:ietf:params:xml:ns:yang:ietf-ipv4-unicast-routing"
+						xmlns:a="urn:ietf:params:xml:ns:netconf:base:1.0"
+						a:operation="merge">
+						<rib>
+							<name>ipv4-master</name>
+							<address-family>ietf-ipv4-unicast-routing:ipv4-unicast
+							</address-family>
+						</rib>
+					</ribs>
+				</routing-instance>
+			</routing>
+		</config>
+	</edit-config>
+</rpc>

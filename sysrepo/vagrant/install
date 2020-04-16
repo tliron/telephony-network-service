@@ -1,0 +1,98 @@
+#!/bin/bash
+set -e
+
+dnf install --assumeyes \
+	tcpdump grc \
+	cmake make gcc gcc-c++ swig \
+	zlib-devel openssl-devel pcre-devel libcurl-devel python3-devel \
+	libcmocka-devel doxygen groff-perl
+
+# optional: libcmocka-devel is to enable tests
+# optional: doxygen, groff-perl are for generating documentation
+
+function build () {
+	local DIR=$1
+	mkdir "$DIR/build"
+	pushd "$DIR/build" > /dev/null
+	cmake .. -DCMAKE_INSTALL_PREFIX:PATH=/usr "${@:2}"
+	make --jobs=$(nproc)
+	make install
+	popd > /dev/null
+	rm --recursive --force "$DIR"
+}
+
+function user () {
+	useradd --system --no-create-home --shell /sbin/nologin "$1"
+}
+
+cd /tmp
+
+# libssh (Fedora contains version 0.9 that does not work with libnetconf)
+# requires: zlib-devel, openssl-devel
+git clone --branch libssh-0.8.8 https://git.libssh.org/projects/libssh.git
+build libssh
+
+# libyang
+# requires: pcre-devel, python3-devel, swig
+git clone https://github.com/CESNET/libyang.git
+build libyang -DGEN_LANGUAGE_BINDINGS:BOOL=ON
+
+# libnetconf
+# requires: openssl-devel, libssh (above), libyang (above)
+git clone https://github.com/CESNET/libnetconf2.git
+build libnetconf2
+
+# sysrepo
+# requires: libyang (above), python3-devel, swig
+git clone https://github.com/sysrepo/sysrepo.git
+build sysrepo -DGEN_LANGUAGE_BINDINGS:BOOL=ON -DREPO_PATH:PATH=/etc/sysrepo
+
+# netopeer2
+# requires: libcurl-devel, libssh (above), libyang (above), libnetconf (above), sysrepo (above)
+git clone https://github.com/CESNET/Netopeer2.git
+build Netopeer2/server
+build Netopeer2/cli
+rm --recursive --force Netopeer2
+
+# sysrepo-plugind.service
+user sysrepo
+mkdir --parents /usr/lib64/sysrepo/plugins
+chown sysrepo:sysrepo --recursive /usr/lib64/sysrepo/plugins
+cat > /etc/systemd/system/sysrepo-plugind.service <<- EOT
+	[Unit]
+	Description=sysrepo-plugind
+
+	[Service]
+	Type=forking
+	User=sysrepo
+	ExecStart=/usr/bin/sysrepo-plugind -v 1
+
+	[Install]
+	WantedBy=multi-user.target
+EOT
+chmod 0644 /etc/systemd/system/sysrepo-plugind.service
+
+# netopeer2-server.service
+user netopeer
+cat > /etc/systemd/system/netopeer2-server.service <<- EOT
+	[Unit]
+	Description=netopeer2-server
+
+	[Service]
+	Type=forking
+	PIDFile=/run/netopeer2-server.pid
+	ExecStart=/usr/bin/netopeer2-server -v 1 -u netopeer -g netopeer
+
+	[Install]
+	WantedBy=multi-user.target
+EOT
+chmod 0644 /etc/systemd/system/netopeer2-server.service
+
+systemctl daemon-reload
+systemctl start netopeer2-server.service
+systemctl enable netopeer2-server.service
+
+#systemctl start sysrepo-plugind.service
+#systemctl enable sysrepo-plugind.service
+
+echo Done!

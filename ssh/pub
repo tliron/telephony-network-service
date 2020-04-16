@@ -1,0 +1,14 @@
+#!/bin/bash
+set -e
+
+HERE=$(dirname "$(readlink --canonicalize "$BASH_SOURCE")")
+. "$HERE/../scripts/_env"
+
+NAME=$1
+CONFIGURATION=$(readlink --canonicalize "$ROOT/configuration/ssh")
+
+if [ ! -f "$CONFIGURATION/$NAME.pub" ]; then
+	ssh-keygen -f "$CONFIGURATION/$NAME" -t rsa -N ''
+fi
+
+cat "$CONFIGURATION/$NAME.pub"

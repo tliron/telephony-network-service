@@ -1,0 +1,33 @@
+<routing xmlns="urn:ietf:params:xml:ns:yang:ietf-routing">
+	<routing-instance>
+		<name>default-rt</name>
+		<routing-protocols
+			xmlns:a="urn:ietf:params:xml:ns:netconf:base:1.0" a:operation="merge">
+			<routing-protocol>
+				<type>static</type>
+				<name>static</name>
+			</routing-protocol>
+			<routing-protocol>
+				<type>static</type>
+				<name>smart-routing-load-balancing-allocate-guaranteed-rate-first
+				</name>
+			</routing-protocol>
+			<routing-protocol>
+				<type>static</type>
+				<name>smart-routing-single-wan-minimum-latency</name>
+			</routing-protocol>
+			<routing-protocol>
+				<type>static</type>
+				<name>smart-routing-single-wan-maximum-datarate</name>
+			</routing-protocol>
+			<routing-protocol>
+				<type>static</type>
+				<name>smart-routing-load-balancing-allocate-low-latency-first</name>
+			</routing-protocol>
+			<routing-protocol>
+				<type>static</type>
+				<name>smart-routing-single-wan-strict-priority</name>
+			</routing-protocol>
+		</routing-protocols>
+	</routing-instance>
+</routing>

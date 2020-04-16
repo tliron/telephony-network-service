@@ -1,0 +1,54 @@
+#!/bin/bash
+set -e
+
+HERE=$(dirname "$(readlink --canonicalize "$BASH_SOURCE")")
+. "$HERE/../../scripts/_env"
+. "$ROOT/scripts/_trap"
+
+minikube profile central
+
+TRUNK_IP=$(kubectl_data_plane_ip asterisk-vnf)
+
+minikube profile edge
+
+m 'waiting for Asterisk to start...'
+kubectl_wait_for_deployment asterisk-cnf
+
+EXTERNAL_IP=$(kubectl_external_ip asterisk-cnf-udp)
+while [ -z "$EXTERNAL_IP" ]; do
+	m 'waiting for external IP...'
+	sleep 1
+	EXTERNAL_IP=$(kubectl_external_ip asterisk-cnf-udp)
+done
+
+CONTROL_PLANE_IP=$(kubectl_control_plane_ip asterisk-cnf)
+DATA_PLANE_IP=$(kubectl_data_plane_ip asterisk-cnf)
+
+m EXTERNAL_IP=$EXTERNAL_IP
+m CONTROL_PLANE_IP=$CONTROL_PLANE_IP
+m DATA_PLANE_IP=$DATA_PLANE_IP
+m TRUNK_IP=$TRUNK_IP
+
+m 'configuring Asterisk...'
+
+POD=$(kubectl_first_pod asterisk-cnf)
+kubectl cp "$ROOT/configuration/asterisk/extensions-cnf.conf.template" "$POD:/etc/asterisk/extensions.conf.template" --namespace="$WORKSPACE"
+kubectl cp "$ROOT/configuration/asterisk/pjsip-cnf.conf.template" "$POD:/etc/asterisk/pjsip.conf.template" --namespace="$WORKSPACE"
+kubectl cp "$ROOT/configuration/asterisk/rtp.conf" "$POD:/etc/asterisk/rtp.conf" --namespace="$WORKSPACE"
+
+kubectl exec -it "$POD" --namespace="$WORKSPACE" -- bash -c "$(cat <<- EOT
+
+	cat /etc/asterisk/extensions.conf.template | __=\\$ TRUNK_IP=$TRUNK_IP envsubst > /etc/asterisk/extensions.conf &&
+	cat /etc/asterisk/pjsip.conf.template | CONTROL_PLANE_IP=$CONTROL_PLANE_IP DATA_PLANE_IP=$DATA_PLANE_IP EXTERNAL_IP=$EXTERNAL_IP TRUNK_IP=$TRUNK_IP envsubst > /etc/asterisk/pjsip.conf &&
+
+	chown asterisk:asterisk /etc/asterisk/extensions.conf &&
+	chown asterisk:asterisk /etc/asterisk/pjsip.conf &&
+	chown asterisk:asterisk /etc/asterisk/rtp.conf &&
+
+	asterisk -rx 'core restart now'
+
+EOT
+)"
+
+IP=$EXTERNAL_IP \
+"$ROOT/linphone/update-100"

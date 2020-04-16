@@ -1,0 +1,19 @@
+#!/bin/bash
+set -e
+
+HERE=$(dirname "$(readlink --canonicalize "$BASH_SOURCE")")
+. "$HERE/../../scripts/_env"
+. "$ROOT/scripts/_trap"
+
+minikube profile edge
+
+if [ "$1" == -c ]; then
+	"$HERE/delete"
+fi
+
+export REGISTRY_URL=$(kubectl_registry_url)
+
+m "deploying Asterisk CNF to namespace \"$WORKSPACE\"..."
+kubectl_apply_template "$ROOT/configuration/kubernetes/asterisk-cnf.yaml"
+
+#"$HERE/configure"

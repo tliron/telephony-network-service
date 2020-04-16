@@ -1,0 +1,11 @@
+#!/bin/bash
+set -e
+
+HERE=$(dirname "$(readlink --canonicalize "$BASH_SOURCE")")
+
+. "$HERE/env/bin/activate"
+
+netconf-console \
+	--port 8300 \
+	--user vagrant \
+	--password vagrant

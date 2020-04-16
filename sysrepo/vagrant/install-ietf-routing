@@ -1,0 +1,24 @@
+#!/bin/bash
+set -e
+
+# See:
+# https://tools.ietf.org/html/rfc8349
+# http://www.netconfcentral.org/modulereport/ietf-routing
+# http://www.netconfcentral.org/modulereport/ietf-interfaces
+
+function yang () {
+	local NAME=$1.yang
+	curl --output "$NAME" "http://dld.netconfcentral.org/src/$NAME"
+	sudo sysrepoctl --install "$NAME" --apply --permissions 666
+	rm "$NAME"
+}
+
+cd /tmp
+
+# sysrepo installs will be pending if there are >0 connections
+sudo systemctl stop netopeer2-server
+
+yang ietf-interfaces@2017-12-16
+yang ietf-routing@2017-12-11
+
+sudo systemctl start netopeer2-server

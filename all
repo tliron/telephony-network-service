@@ -1,0 +1,35 @@
+#!/bin/bash
+set -e
+
+HERE=$(dirname "$(readlink --canonicalize "$BASH_SOURCE")")
+
+# central
+
+minikube profile central
+
+"$HERE/multus/deploy"
+"$HERE/kubevirt/deploy"
+
+kubectl create namespace workspace || true
+
+"$HERE/data-plane/deploy-central"
+"$HERE/asterisk/vnf/publish-container-image"
+"$HERE/asterisk/vnf/deploy"
+
+# edge
+
+minikube profile edge
+
+"$HERE/multus/deploy"
+
+kubectl create namespace workspace || true
+
+"$HERE/data-plane/deploy-edge"
+"$HERE/asterisk/cnf/publish-container-image"
+"$HERE/asterisk/cnf/deploy"
+
+# configure
+
+"$HERE/data-plane/configure"
+"$HERE/asterisk/vnf/configure"
+"$HERE/asterisk/cnf/configure"

@@ -1,0 +1,6 @@
+
+KUBEVIRT_VERSION=v0.28.0
+
+#KUBEVIRT_VERSION=$(curl --silent https://api.github.com/repos/kubevirt/kubevirt/releases | grep tag_name | grep -v -- - | sort -V | tail -1 | awk -F':' '{print $2}' | sed 's/,//' | xargs)
+
+#KUBEVIRT_EMULATION=true

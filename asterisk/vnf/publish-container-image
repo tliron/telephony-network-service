@@ -1,0 +1,15 @@
+#!/bin/bash
+set -e
+
+HERE=$(dirname "$(readlink --canonicalize "$BASH_SOURCE")")
+. "$HERE/../../scripts/_env"
+. "$ROOT/scripts/_trap"
+
+minikube profile central
+
+IMAGE=asterisk-vnf
+LOCAL=localhost/$IMAGE
+REMOTE=docker://$(minikube ip):5000/$IMAGE
+
+skopeo delete --tls-verify=false "$REMOTE" || true
+buildah push --tls-verify=false "$LOCAL" "$REMOTE"

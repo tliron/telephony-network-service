@@ -1,0 +1,7 @@
+Host "asterisk-vnf"
+  HostName "$IP"
+  User "admin"
+  IdentityFile "$HERE/admin@asterisk-vnf"
+  StrictHostKeyChecking no
+  UserKnownHostsFile /dev/null
+  LogLevel ERROR

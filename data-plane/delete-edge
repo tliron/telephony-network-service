@@ -1,0 +1,14 @@
+#!/bin/bash
+set -e
+
+HERE=$(dirname "$(readlink --canonicalize "$BASH_SOURCE")")
+. "$HERE/../scripts/_env"
+
+. "$HERE/_env"
+
+minikube profile edge
+
+IP_PREFIX=$EDGE_IP_PREFIX \
+kubectl_delete_template "$ROOT/configuration/kubernetes/data-plane.yaml"
+
+minikube ssh -- sudo ip link delete data-plane || true

@@ -1,0 +1,24 @@
+<routing xmlns="urn:ietf:params:xml:ns:yang:ietf-routing">
+	<routing-instance>
+		<name>default-rt</name>
+		<routing-protocols>
+			<routing-protocol>
+				<type>static</type>
+				<name>static</name>
+				<static-routes>
+					<ipv4
+						xmlns="urn:ietf:params:xml:ns:yang:ietf-ipv4-unicast-routing"
+						xmlns:a="urn:ietf:params:xml:ns:netconf:base:1.0"
+						a:operation="merge">
+						<route>
+							<destination-prefix>10.10.10.0/24</destination-prefix>
+							<next-hop>
+								<next-hop-address>192.168.1.2</next-hop-address>
+							</next-hop>
+						</route>
+					</ipv4>
+				</static-routes>
+			</routing-protocol>
+		</routing-protocols>
+	</routing-instance>
+</routing>

@@ -1,0 +1,11 @@
+#!/bin/bash
+set -e
+
+HERE=$(dirname "$(readlink --canonicalize "$BASH_SOURCE")")
+
+# sudo dnf install --assumeyes patch ncurses-devel python3-devel
+
+python -m venv "$HERE/env"
+. "$HERE/env/bin/activate"
+pip install --upgrade pip
+pip install netconf-console

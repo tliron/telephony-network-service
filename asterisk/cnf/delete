@@ -1,0 +1,12 @@
+#!/bin/bash
+set -e
+
+HERE=$(dirname "$(readlink --canonicalize "$BASH_SOURCE")")
+. "$HERE/../../scripts/_env"
+. "$ROOT/scripts/_trap"
+
+minikube profile edge
+
+m "deleting Asterisk CNF from namespace \"$WORKSPACE\"..."
+
+kubectl_delete_template "$ROOT/configuration/kubernetes/asterisk-cnf.yaml"

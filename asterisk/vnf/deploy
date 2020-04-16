@@ -1,0 +1,32 @@
+#!/bin/bash
+set -e
+
+HERE=$(dirname "$(readlink --canonicalize "$BASH_SOURCE")")
+. "$HERE/../../scripts/_env"
+. "$ROOT/scripts/_trap"
+
+minikube profile central
+
+if [ "$1" == -c ]; then
+	"$HERE/delete"
+fi
+
+KEY=$("$ROOT/ssh/pub" admin@asterisk-vnf)
+export CLOUD_CONFIG=$(cat "$ROOT/configuration/cloud-config/asterisk-vnf.yaml" | KEY=$KEY envsubst | base64 --wrap=0)
+export REGISTRY_URL=$(kubectl_registry_url)
+
+m "deploying Asterisk VNF to namespace \"$WORKSPACE\"..."
+kubectl_apply_template "$ROOT/configuration/kubernetes/asterisk-vnf.yaml"
+
+EXTERNAL_IP=$(kubectl_external_ip asterisk-vnf-tcp)
+while [ -z "$EXTERNAL_IP" ]; do
+	m 'waiting for external IP for ssh...'
+	sleep 1
+	EXTERNAL_IP=$(kubectl_external_ip asterisk-vnf-tcp)
+done
+m EXTERNAL_IP=$EXTERNAL_IP
+
+IP=$EXTERNAL_IP \
+"$ROOT/ssh/update"
+
+#"$HERE/configure"

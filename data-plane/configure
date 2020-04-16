@@ -1,0 +1,53 @@
+#!/bin/bash
+set -e
+
+HERE=$(dirname "$(readlink --canonicalize "$BASH_SOURCE")")
+. "$HERE/../scripts/_env"
+. "$ROOT/scripts/_trap"
+
+. "$HERE/_env"
+
+pushd "$HERE/../sysrepo/vagrant" > /dev/null
+ROUTER_IP=$(vagrant ssh -- hostname --all-ip-addresses | tr -d '[:space:]')
+m ROUTER_IP=$ROUTER_IP
+popd > /dev/null
+
+minikube profile edge
+
+EDGE_IP=$(minikube ip)
+m EDGE_IP=$EDGE_IP
+
+minikube profile central
+
+# TODO: routes are deleted after a few mins
+#minikube ssh -- sudo ip route del "$EDGE_IP_PREFIX.0/24" || true
+#minikube ssh -- sudo ip route add "$EDGE_IP_PREFIX.0/24" via "$ROUTER_IP"
+
+CENTRAL_IP=$(minikube ip)
+m CENTRAL_IP=$CENTRAL_IP
+
+#minikube profile edge
+
+# TODO: routes are deleted after a few mins
+#minikube ssh -- sudo ip route del "$CENTRAL_IP_PREFIX.0/24" || true
+#minikube ssh -- sudo ip route add "$CENTRAL_IP_PREFIX.0/24" via "$ROUTER_IP"
+
+# Router
+
+pushd "$HERE/../sysrepo/vagrant"
+vagrant ssh -- "echo 'net.ipv4.ip_forward = 1' | sudo tee /etc/sysctl.d/forward.conf > /dev/null"
+vagrant ssh -- "echo 1 | sudo tee /proc/sys/net/ipv4/ip_forward > /dev/null"
+vagrant ssh -- sudo ip route del "$LIBVIRT_PREFIX.0/24" || true
+vagrant ssh -- sudo ip route add "$LIBVIRT_PREFIX.0/24" dev eth0 
+vagrant ssh -- sudo ip route del "$CENTRAL_IP_PREFIX.0/24" || true
+vagrant ssh -- sudo ip route add "$CENTRAL_IP_PREFIX.0/24" via "$CENTRAL_IP"
+vagrant ssh -- sudo ip route del "$EDGE_IP_PREFIX.0/24" || true
+vagrant ssh -- sudo ip route add "$EDGE_IP_PREFIX.0/24" via "$EDGE_IP"
+popd
+
+# Local
+
+sudo ip route del "$CENTRAL_IP_PREFIX.0/24" || true
+sudo ip route add "$CENTRAL_IP_PREFIX.0/24" via "$ROUTER_IP"
+sudo ip route del "$EDGE_IP_PREFIX.0/24" || true
+sudo ip route add "$EDGE_IP_PREFIX.0/24" via "$ROUTER_IP"

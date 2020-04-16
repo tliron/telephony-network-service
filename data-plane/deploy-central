@@ -1,0 +1,16 @@
+#!/bin/bash
+set -e
+
+HERE=$(dirname "$(readlink --canonicalize "$BASH_SOURCE")")
+. "$HERE/../scripts/_env"
+
+if [ "$1" == -c ]; then
+	"$HERE/delete-central"
+fi
+
+. "$HERE/_env"
+
+minikube profile central
+
+IP_PREFIX=$CENTRAL_IP_PREFIX \
+kubectl_apply_template "$ROOT/configuration/kubernetes/data-plane.yaml"
