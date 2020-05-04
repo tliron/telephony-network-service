@@ -8,9 +8,11 @@ HERE=$(dirname "$(readlink --canonicalize "$BASH_SOURCE")")
 . "$HERE/../../scripts/_env"
 . "$ROOT/scripts/_trap"
 
+# https://alt.fedoraproject.org/cloud/
+
 BASE_IMAGE=scratch
-DISK_NAME=Fedora-Cloud-Base-31-1.9.x86_64.qcow2
-URL=https://download.fedoraproject.org/pub/fedora/linux/releases/31/Cloud/x86_64/images/$DISK_NAME
+DISK_NAME=Fedora-Cloud-Base-32-1.6.x86_64.qcow2
+URL=https://download.fedoraproject.org/pub/fedora/linux/releases/32/Cloud/x86_64/images/$DISK_NAME
 DISK=$TMPDIR/$DISK_NAME
 IMAGE=asterisk-vnf
 LOCAL=localhost/$IMAGE

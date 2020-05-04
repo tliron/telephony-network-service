@@ -3,8 +3,8 @@ set -e
 
 dnf install --assumeyes \
 	tcpdump grc \
-	cmake make gcc gcc-c++ swig \
-	zlib-devel openssl-devel pcre-devel libcurl-devel python3-devel \
+	git cmake make gcc gcc-c++ swig \
+	zlib-devel openssl-devel pcre-devel python3-devel \
 	libcmocka-devel doxygen groff-perl
 
 # optional: libcmocka-devel is to enable tests
@@ -32,26 +32,31 @@ cd /tmp
 git clone --branch libssh-0.8.8 https://git.libssh.org/projects/libssh.git
 build libssh
 
+# libcurl (Fedora contains version 7.69 that does not work with netopeer2)
+git clone --branch curl-7_61_1 https://github.com/curl/curl.git
+build curl
+cp /usr/lib/libcurl.so /usr/lib64/
+
 # libyang
 # requires: pcre-devel, python3-devel, swig
-git clone https://github.com/CESNET/libyang.git
+git clone --branch v1.0.130 https://github.com/CESNET/libyang.git
 build libyang -DGEN_LANGUAGE_BINDINGS:BOOL=ON
 
 # libnetconf
 # requires: openssl-devel, libssh (above), libyang (above)
-git clone https://github.com/CESNET/libnetconf2.git
+git clone --branch v1.1.7 https://github.com/CESNET/libnetconf2.git
 build libnetconf2
 
 # sysrepo
 # requires: libyang (above), python3-devel, swig
-git clone https://github.com/sysrepo/sysrepo.git
+git clone --branch v1.4.2 https://github.com/sysrepo/sysrepo.git
 build sysrepo -DGEN_LANGUAGE_BINDINGS:BOOL=ON -DREPO_PATH:PATH=/etc/sysrepo
 
 # netopeer2
-# requires: libcurl-devel, libssh (above), libyang (above), libnetconf (above), sysrepo (above)
-git clone https://github.com/CESNET/Netopeer2.git
-build Netopeer2/server
-build Netopeer2/cli
+# requires: libcurl (above), libssh (above), libyang (above), libnetconf (above), sysrepo (above)
+git clone --branch v1.1.7 https://github.com/CESNET/Netopeer2.git
+build Netopeer2/server -DCMAKE_C_FLAGS=-Wl,--allow-multiple-definition 
+build Netopeer2/cli -DCMAKE_C_FLAGS=-Wl,--allow-multiple-definition
 rm --recursive --force Netopeer2
 
 # sysrepo-plugind.service
