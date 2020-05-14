@@ -7,4 +7,4 @@ HERE=$(dirname "$(readlink --canonicalize "$BASH_SOURCE")")
 
 . "$HERE/_env"
 
-kubectl delete --filename="https://raw.githubusercontent.com/intel/multus-cni/$MULTUS_VERSION/images/multus-daemonset.yml"
+kubectl delete --filename="https://raw.githubusercontent.com/intel/multus-cni/$MULTUS_VERSION/images/multus-daemonset.yml" || true
