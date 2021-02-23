@@ -1,11 +1,18 @@
 #!/bin/bash
 set -e
 
-dnf install --assumeyes \
+LIBYANG_VERSION=v1.0.184
+LIBNETCONF_VERSION=v1.1.26
+SYSREPO_VERSION=v1.4.70
+NETOPEER2_VERSION=v1.1.39
+
+dnf --assumeyes install \
 	tcpdump grc \
-	git cmake make gcc gcc-c++ swig \
-	zlib-devel openssl-devel pcre-devel python3-devel \
+	git cmake make gcc gcc-c++ swig openssl \
+	libcurl-devel libssh-devel openssl-devel pcre-devel python3-devel \
 	libcmocka-devel doxygen groff-perl
+
+dnf --assumeyes clean all
 
 # optional: libcmocka-devel is to enable tests
 # optional: doxygen, groff-perl are for generating documentation
@@ -27,37 +34,35 @@ function user () {
 
 cd /tmp
 
-# libssh (Fedora contains version 0.9 that does not work with libnetconf)
+# libssh (Fedora 32 contains libssh-devel version 0.9 that does not work with libnetconf)
 # requires: zlib-devel, openssl-devel
-git clone --branch libssh-0.8.8 https://git.libssh.org/projects/libssh.git
-build libssh
+#git clone --branch libssh-0.8.8 https://git.libssh.org/projects/libssh.git
+#build libssh
 
-# libcurl (Fedora contains version 7.69 that does not work with netopeer2)
-git clone --branch curl-7_61_1 https://github.com/curl/curl.git
-build curl
-cp /usr/lib/libcurl.so /usr/lib64/
+# libcurl (Fedora 32 contains libcurl-devel version 7.69 that does not work with netopeer2)
+#git clone --branch curl-7_61_1 https://github.com/curl/curl.git
+#build curl
+#cp /usr/lib/libcurl.so /usr/lib64/
 
 # libyang
 # requires: pcre-devel, python3-devel, swig
-git clone --branch v1.0.130 https://github.com/CESNET/libyang.git
+git clone --branch $LIBYANG_VERSION https://github.com/CESNET/libyang.git
 build libyang -DGEN_LANGUAGE_BINDINGS:BOOL=ON
 
-# libnetconf
-# requires: openssl-devel, libssh (above), libyang (above)
-git clone --branch v1.1.7 https://github.com/CESNET/libnetconf2.git
+# libnetconf2
+# requires: openssl-devel, libssh-devel, libyang (above)
+git clone --branch $LIBNETCONF_VERSION https://github.com/CESNET/libnetconf2.git
 build libnetconf2
 
 # sysrepo
 # requires: libyang (above), python3-devel, swig
-git clone --branch v1.4.2 https://github.com/sysrepo/sysrepo.git
+git clone --branch $SYSREPO_VERSION https://github.com/sysrepo/sysrepo.git
 build sysrepo -DGEN_LANGUAGE_BINDINGS:BOOL=ON -DREPO_PATH:PATH=/etc/sysrepo
 
 # netopeer2
-# requires: libcurl (above), libssh (above), libyang (above), libnetconf (above), sysrepo (above)
-git clone --branch v1.1.7 https://github.com/CESNET/Netopeer2.git
-build Netopeer2/server -DCMAKE_C_FLAGS=-Wl,--allow-multiple-definition 
-build Netopeer2/cli -DCMAKE_C_FLAGS=-Wl,--allow-multiple-definition
-rm --recursive --force Netopeer2
+# requires: libcurl-devel, libssh-devel, openssl, libyang (above), libnetconf2 (above), sysrepo (above)
+git clone --branch $NETOPEER2_VERSION https://github.com/CESNET/Netopeer2.git
+build Netopeer2 -DGEN_LANGUAGE_BINDINGS:BOOL=ON
 
 # sysrepo-plugind.service
 user sysrepo
@@ -99,5 +104,9 @@ systemctl enable netopeer2-server.service
 
 #systemctl start sysrepo-plugind.service
 #systemctl enable sysrepo-plugind.service
+
+# This allows Fedora to use the old "ssh-rsa" algorithm for libssh
+# (Unfortunately, Python clients that rely on Paramiko do not yet support newer algorithms)
+update-crypto-policies --set LEGACY
 
 echo Done!

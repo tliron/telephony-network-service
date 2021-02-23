@@ -39,6 +39,8 @@ pip install netconf-console --user
 netconf-console --port 830 --user vagrant --password vagrant
 get-schema ietf-interfaces
 get -x /ietf-interfaces:interfaces/interface[name='eth100']/description
+get -x /ietf-keystore:keystore/asymmetric-keys/asymmetric-key/name
+get -x //ietf-keystore:name
 urn:ietf:params:xml:ns:yang:ietf-interfaces
 
 # librouter-gui
